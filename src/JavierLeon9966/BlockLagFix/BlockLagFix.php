@@ -34,17 +34,17 @@ final class BlockLagFix extends PluginBase{
 		 */
 		$lastBlocks = [];
 		$lastNetworkSession = null;
-		$handleUpdateBlock = static function(UpdateBlockPacket $packet, NetworkSession $target) use(&$lastBlocks, &$lastNetworkSession): bool{
-			/** @var NetworkSession $lastNetworkSession */
-			if($target !== $lastNetworkSession){
-				return true;
-			}
-			$blockHash = World::blockHash($packet->blockPosition->getX(), $packet->blockPosition->getY(), $packet->blockPosition->getZ());
-			if(isset($lastBlocks[$blockHash])){
-				$lastBlocks[$blockHash] = BlockFactory::getInstance()->fromFullBlock(RuntimeBlockMapping::getInstance()->fromRuntimeId($packet->blockRuntimeId));
-			}
-			return false;
-		};
+		$handleUpdateBlock = static function(UpdateBlockPacket $packet, NetworkSession $target) use(&$lastBlocks, &$lastNetworkSession, $server): bool{
+            /** @var NetworkSession $lastNetworkSession */
+            if($target !== $lastNetworkSession){
+                return true;
+            }
+            $blockHash = World::blockHash($packet->blockPosition->getX(), $packet->blockPosition->getY(), $packet->blockPosition->getZ());
+            $blockPos = new Vector3($packet->blockPosition->getX(), $packet->blockPosition->getY(), $packet->blockPosition->getZ());
+
+            if(!self::canBuildHere($blockPos, $target->getPlayer() ?? null)){
+                return true;
+            }
 		$handler->interceptIncoming(static function(InventoryTransactionPacket $packet, NetworkSession $target) use($handler, $handleUpdateBlock, &$lastBlocks, &$lastNetworkSession): bool{
 			if(!$packet->trData instanceof UseItemTransactionData || $packet->trData->getActionType() !== UseItemTransactionData::ACTION_CLICK_BLOCK){
 				return true;
